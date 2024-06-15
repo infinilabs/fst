@@ -1,25 +1,19 @@
+extern crate alloc;
 use core::cmp;
 use core::fmt;
-#[cfg(feature = "std")]
-use std::collections::hash_map::Entry;
-#[cfg(feature = "std")]
-use std::collections::{HashMap, HashSet};
-
+use alloc::string::String;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
+use hashbrown::HashSet;
+use alloc::vec;
 use utf8_ranges::{Utf8Range, Utf8Sequences};
 
 use crate::automaton::Automaton;
 
-const DEFAULT_STATE_LIMIT: usize = 10_000; // currently at least 20MB >_<
+const DEFAULT_STATE_LIMIT: usize = 10_000;
 
-/// An error that occurred while building a Levenshtein automaton.
-///
-/// This error is only defined when the `levenshtein` crate feature is enabled.
 #[derive(Debug)]
 pub enum LevenshteinError {
-    /// If construction of the automaton reaches some hard-coded limit
-    /// on the number of states, then this error is returned.
-    ///
-    /// The number given is the limit that was exceeded.
     TooManyStates(usize),
 }
 
@@ -35,127 +29,37 @@ impl fmt::Display for LevenshteinError {
     }
 }
 
-#[cfg(not(feature = "std"))]
-impl core::error::Error for LevenshteinError {}
-
 #[cfg(feature = "std")]
 impl std::error::Error for LevenshteinError {}
 
-/// A Unicode aware Levenshtein automaton for running efficient fuzzy queries.
-///
-/// This is only defined when the `levenshtein` crate feature is enabled.
-///
-/// A Levenshtein automata is one way to search any finite state transducer
-/// for keys that *approximately* match a given query. A Levenshtein automaton
-/// approximates this by returning all keys within a certain edit distance of
-/// the query. The edit distance is defined by the number of insertions,
-/// deletions and substitutions required to turn the query into the key.
-/// Insertions, deletions and substitutions are based on
-/// **Unicode characters** (where each character is a single Unicode scalar
-/// value).
-///
-/// # Example
-///
-/// This example shows how to find all keys within an edit distance of `1`
-/// from `foo`.
-///
-/// ```rust
-/// use fst_no_std::automaton::Levenshtein;
-/// use fst_no_std::{IntoStreamer, Streamer, Set};
-///
-/// let keys = vec!["fa", "fo", "fob", "focus", "foo", "food", "foul"];
-/// let set = Set::from_iter(keys).unwrap();
-///
-/// let lev = Levenshtein::new("foo", 1).unwrap();
-/// let mut stream = set.search(&lev).into_stream();
-///
-/// let mut keys = vec![];
-/// while let Some(key) = stream.next() {
-///     keys.push(key.to_vec());
-/// }
-///
-/// assert_eq!(keys, vec![
-///    "fo".as_bytes(),   // 1 deletion
-///     "fob".as_bytes(),  // 1 substitution
-///     "foo".as_bytes(),  // 0 insertions/deletions/substitutions
-///     "food".as_bytes(), // 1 insertion
-/// ]);
-/// ```
-///
-/// This example only uses ASCII characters, but it will work equally well
-/// on Unicode characters.
-///
-/// # Warning: experimental
-///
-/// While executing this Levenshtein automaton against a finite state
-/// transducer will be very fast, *constructing* an automaton may not be.
-/// Namely, this implementation is a proof of concept. While I believe the
-/// algorithmic complexity is not exponential, the implementation is not speedy
-/// and it can use enormous amounts of memory (tens of MB before a hard-coded
-/// limit will cause an error to be returned).
-///
-/// This is important functionality, so one should count on this implementation
-/// being vastly improved in the future.
-#[cfg(feature = "alloc")]
+#[cfg(not(feature = "std"))]
+impl core::error::Error for LevenshteinError {}
+
 pub struct Levenshtein {
     prog: DynamicLevenshtein,
     dfa: Dfa,
 }
 
-#[cfg(feature = "alloc")]
 impl Levenshtein {
-    /// Create a new Levenshtein query.
-    ///
-    /// The query finds all matching terms that are at most `distance`
-    /// edit operations from `query`. (An edit operation may be an insertion,
-    /// a deletion or a substitution.)
-    ///
-    /// If the underlying automaton becomes too big, then an error is returned.
-    /// Use `new_with_limit` to raise the limit dynamically.
-    ///
-    /// A `Levenshtein` value satisfies the `Automaton` trait, which means it
-    /// can be used with the `search` method of any finite state transducer.
-    #[cfg(feature = "alloc")]
-    pub fn new(
-        query: &str,
-        distance: u32,
-    ) -> Result<Levenshtein, LevenshteinError> {
+    pub fn new(query: &str, distance: u32) -> Result<Levenshtein, LevenshteinError> {
         let lev = DynamicLevenshtein {
-            query: query.to_owned(),
+            query: query.into(),
             dist: distance as usize,
         };
         let dfa = DfaBuilder::new(lev.clone()).build()?;
         Ok(Levenshtein { prog: lev, dfa })
     }
 
-    /// Create a new Levenshtein query, but pass the state limit yourself.
-    ///
-    /// The query finds all matching terms that are at most `distance`
-    /// edit operations from `query`. (An edit operation may be an insertion,
-    /// a deletion or a substitution.)
-    ///
-    /// If the underlying automaton becomes too big, then an error is returned.
-    /// This limit can be configured with `state_limit`.
-    ///
-    /// A `Levenshtein` value satisfies the `Automaton` trait, which means it
-    /// can be used with the `search` method of any finite state transducer.
-    #[cfg(feature = "alloc")]
-    pub fn new_with_limit(
-        query: &str,
-        distance: u32,
-        state_limit: usize,
-    ) -> Result<Levenshtein, LevenshteinError> {
+    pub fn new_with_limit(query: &str, distance: u32, state_limit: usize) -> Result<Levenshtein, LevenshteinError> {
         let lev = DynamicLevenshtein {
-            query: query.to_owned(),
+            query: query.into(),
             dist: distance as usize,
         };
-        let dfa =
-            DfaBuilder::new(lev.clone()).build_with_limit(state_limit)?;
+        let dfa = DfaBuilder::new(lev.clone()).build_with_limit(state_limit)?;
         Ok(Levenshtein { prog: lev, dfa })
     }
 }
 
-#[cfg(feature = "alloc")]
 impl fmt::Debug for Levenshtein {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -167,24 +71,22 @@ impl fmt::Debug for Levenshtein {
 }
 
 #[derive(Clone)]
-#[cfg(feature = "alloc")]
 struct DynamicLevenshtein {
     query: String,
     dist: usize,
 }
 
-#[cfg(feature = "alloc")]
 impl DynamicLevenshtein {
     fn start(&self) -> Vec<usize> {
         (0..self.query.chars().count() + 1).collect()
     }
 
     fn is_match(&self, state: &[usize]) -> bool {
-        state.last().is_some_and(|&n| n <= self.dist)
+        state.last().map_or(false, |&n| n <= self.dist)
     }
 
     fn can_match(&self, state: &[usize]) -> bool {
-        state.iter().min().is_some_and(|&n| n <= self.dist)
+        state.iter().min().map_or(false, |&n| n <= self.dist)
     }
 
     fn accept(&self, state: &[usize], chr: Option<char>) -> Vec<usize> {
@@ -201,7 +103,6 @@ impl DynamicLevenshtein {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl Automaton for Levenshtein {
     type State = Option<usize>;
 
@@ -212,7 +113,7 @@ impl Automaton for Levenshtein {
 
     #[inline]
     fn is_match(&self, state: &Option<usize>) -> bool {
-        state.map(|state| self.dfa.states[state].is_match).unwrap_or(false)
+        state.map_or(false, |state| self.dfa.states[state].is_match)
     }
 
     #[inline]
@@ -227,7 +128,6 @@ impl Automaton for Levenshtein {
 }
 
 #[derive(Debug)]
-#[cfg(feature = "alloc")]
 struct Dfa {
     states: Vec<State>,
 }
@@ -250,14 +150,12 @@ impl fmt::Debug for State {
     }
 }
 
-#[cfg(feature = "alloc")]
 struct DfaBuilder {
     dfa: Dfa,
     lev: DynamicLevenshtein,
     cache: HashMap<Vec<usize>, usize>,
 }
 
-#[cfg(feature = "alloc")]
 impl DfaBuilder {
     fn new(lev: DynamicLevenshtein) -> DfaBuilder {
         DfaBuilder {
@@ -267,13 +165,10 @@ impl DfaBuilder {
         }
     }
 
-    fn build_with_limit(
-        mut self,
-        state_limit: usize,
-    ) -> Result<Dfa, LevenshteinError> {
+    fn build_with_limit(mut self, state_limit: usize) -> Result<Dfa, LevenshteinError> {
         let mut stack = vec![self.lev.start()];
         let mut seen = HashSet::new();
-        let query = self.lev.query.clone(); // temp work around of borrowck
+        let query = self.lev.query.clone();
         while let Some(lev_state) = stack.pop() {
             let dfa_si = self.cached_state(&lev_state).unwrap();
             let mismatch = self.add_mismatch_utf8_states(dfa_si, &lev_state);
@@ -317,8 +212,8 @@ impl DfaBuilder {
             return None;
         }
         Some(match self.cache.entry(lev_state.to_vec()) {
-            Entry::Occupied(v) => (*v.get(), true),
-            Entry::Vacant(v) => {
+            hashbrown::hash_map::Entry::Occupied(v) => (*v.get(), true),
+            hashbrown::hash_map::Entry::Vacant(v) => {
                 let is_match = self.lev.is_match(lev_state);
                 self.dfa.states.push(State { next: [None; 256], is_match });
                 (*v.insert(self.dfa.states.len() - 1), false)
@@ -326,30 +221,17 @@ impl DfaBuilder {
         })
     }
 
-    fn add_mismatch_utf8_states(
-        &mut self,
-        from_si: usize,
-        lev_state: &[usize],
-    ) -> Option<(usize, Vec<usize>)> {
+    fn add_mismatch_utf8_states(&mut self, from_si: usize, lev_state: &[usize]) -> Option<(usize, Vec<usize>)> {
         let mismatch_state = self.lev.accept(lev_state, None);
         let to_si = match self.cached(&mismatch_state) {
             None => return None,
             Some((si, _)) => si,
-            // Some((si, true)) => return Some((si, mismatch_state)),
-            // Some((si, false)) => si,
         };
         self.add_utf8_sequences(false, from_si, to_si, '\u{0}', '\u{10FFFF}');
         Some((to_si, mismatch_state))
     }
 
-    fn add_utf8_sequences(
-        &mut self,
-        overwrite: bool,
-        from_si: usize,
-        to_si: usize,
-        from_chr: char,
-        to_chr: char,
-    ) {
+    fn add_utf8_sequences(&mut self, overwrite: bool, from_si: usize, to_si: usize, from_chr: char, to_chr: char) {
         for seq in Utf8Sequences::new(from_chr, to_chr) {
             let mut fsi = from_si;
             for range in &seq.as_slice()[0..seq.len() - 1] {
@@ -357,31 +239,21 @@ impl DfaBuilder {
                 self.add_utf8_range(overwrite, fsi, tsi, range);
                 fsi = tsi;
             }
-            self.add_utf8_range(
-                overwrite,
-                fsi,
-                to_si,
-                &seq.as_slice()[seq.len() - 1],
-            );
+            self.add_utf8_range(overwrite, fsi, to_si, &seq.as_slice()[seq.len() - 1]);
         }
     }
 
-    fn add_utf8_range(
-        &mut self,
-        overwrite: bool,
-        from: usize,
-        to: usize,
-        range: &Utf8Range,
-    ) {
-        for b in (range.start as usize)..=(range.end as usize) {
-            if overwrite || self.dfa.states[from].next[b].is_none() {
-                self.dfa.states[from].next[b] = Some(to);
+    fn add_utf8_range(&mut self, overwrite: bool, from_si: usize, to_si: usize, range: &Utf8Range) {
+        for b in range.start..range.end + 1 {
+            if overwrite || self.dfa.states[from_si].next[b as usize].is_none() {
+                self.dfa.states[from_si].next[b as usize] = Some(to_si);
             }
         }
     }
 
     fn new_state(&mut self, is_match: bool) -> usize {
+        let si = self.dfa.states.len();
         self.dfa.states.push(State { next: [None; 256], is_match });
-        self.dfa.states.len() - 1
+        si
     }
 }

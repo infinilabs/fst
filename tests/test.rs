@@ -1,7 +1,6 @@
 #[cfg(feature = "levenshtein")]
 use fst_no_std::automaton::Levenshtein;
 use fst_no_std::automaton::{Str, Subsequence};
-#[cfg(feature = "levenshtein")]
 use fst_no_std::raw::{Builder, Fst};
 use fst_no_std::set::Set;
 use fst_no_std::{self, Automaton, IntoStreamer, Streamer};

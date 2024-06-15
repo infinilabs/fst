@@ -2,6 +2,14 @@ use crate::automaton::AlwaysMatch;
 use crate::error::Error;
 use crate::raw::{self, Bound, Builder, Fst, Output, Stream, VERSION};
 use crate::stream::Streamer;
+#[cfg(test)]
+use std::vec::Vec;
+
+
+#[cfg(test)]
+use std::vec;
+#[cfg(test)]
+use std::string::String;
 
 const TEXT: &str = include_str!("./../../data/words-100000");
 

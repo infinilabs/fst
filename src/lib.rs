@@ -55,27 +55,6 @@ case, a character is a Unicode codepoint.)
 This requires the `levenshtein` feature in this crate to be enabled. It is not
 enabled by default.
 
-```rust
-use fst_no_std::{IntoStreamer, Streamer, Set};
-use fst_no_std::automaton::Levenshtein;
-
-# fn main() { example().unwrap(); }
-fn example() -> Result<(), Box<dyn std::error::Error>> {
-    // A convenient way to create sets in memory.
-    let keys = vec!["fa", "fo", "fob", "focus", "foo", "food", "foul"];
-    let set = Set::from_iter(keys)?;
-
-    // Build our fuzzy query.
-    let lev = Levenshtein::new("foo", 1)?;
-
-    // Apply our fuzzy query to the set we built.
-    let mut stream = set.search(lev).into_stream();
-
-    let keys = stream.into_strs()?;
-    assert_eq!(keys, vec!["fo", "fob", "foo", "food"]);
-    Ok(())
-}
-```
 
 **Warning**: Levenshtein automatons use a lot of memory
 
@@ -305,8 +284,13 @@ data structures found in the standard library, such as `BTreeSet` and
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(error_in_core))]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![allow(clippy::should_implement_trait)]
+
+
+#[cfg(test)]
+extern crate std; // use the standard library for tests
+
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

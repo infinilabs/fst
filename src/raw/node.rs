@@ -905,7 +905,12 @@ mod tests {
     use crate::raw::node::Node;
     use crate::raw::{Builder, CompiledAddr, Output, Transition, VERSION};
     use crate::stream::Streamer;
-
+    #[cfg(test)]
+    use std::vec::Vec;
+    #[cfg(test)]
+    use std::vec;
+    #[cfg(test)]
+    use std::println;
     const NEVER_LAST: CompiledAddr = std::u64::MAX as CompiledAddr;
 
     #[test]

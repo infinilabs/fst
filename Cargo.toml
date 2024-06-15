@@ -14,17 +14,16 @@ keywords = ["search", "information", "retrieval", "dictionary", "map"]
 license = "Unlicense/MIT"
 edition = "2018"
 
-[workspace]
-members = ["bench"]
 
 [features]
-default = ["std"]
-levenshtein = ["utf8-ranges", "std"]
+default = ["std","alloc","utf8-ranges","levenshtein"]
+levenshtein = ["utf8-ranges", "alloc"]
 std = ["alloc"]
 alloc = []
 
 [dependencies]
 utf8-ranges = { version = "1.0.4", optional = true }
+hashbrown = { version = "0.14" }
 
 [dev-dependencies]
 doc-comment = "0.3.1"

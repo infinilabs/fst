@@ -141,6 +141,8 @@ mod tests {
     use super::{Registry, RegistryCache, RegistryCell, RegistryEntry};
     use crate::raw::build::BuilderNode;
     use crate::raw::{Output, Transition};
+    #[cfg(test)]
+    use std::vec;
 
     fn assert_rejected(entry: RegistryEntry) {
         match entry {
