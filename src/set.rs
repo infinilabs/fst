@@ -16,8 +16,6 @@ use core::iter::FromIterator;
 #[cfg(feature = "std")]
 use std::io;
 
-
-
 /// Set is a lexicographically ordered set of byte strings.
 ///
 /// A `Set` is constructed with the `SetBuilder` type. Alternatively, a `Set`
@@ -1133,9 +1131,9 @@ mod tests {
     use super::OpBuilder;
     use crate::Streamer;
     #[cfg(test)]
-    use std::vec::Vec;
-    #[cfg(test)]
     use std::vec;
+    #[cfg(test)]
+    use std::vec::Vec;
 
     #[test]
     fn no_fsts() {

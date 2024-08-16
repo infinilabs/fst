@@ -287,10 +287,8 @@ data structures found in the standard library, such as `BTreeSet` and
 // #![deny(missing_docs)]
 #![allow(clippy::should_implement_trait)]
 
-
 #[cfg(test)]
 extern crate std; // use the standard library for tests
-
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
