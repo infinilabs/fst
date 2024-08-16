@@ -20,6 +20,8 @@ default = ["std","alloc","utf8-ranges","levenshtein"]
 levenshtein = ["utf8-ranges", "alloc"]
 std = ["alloc"]
 alloc = []
+# If enabled, `Iterator<Item=u64> will be impled for Stream`
+stream-iter = []
 
 [dependencies]
 utf8-ranges = { version = "1.0.4", optional = true }

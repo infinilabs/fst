@@ -694,7 +694,7 @@ impl<'a, 's, A: Automaton> Streamer<'a> for Stream<'s, A> {
     type Item = &'a [u8];
 
     fn next(&'a mut self) -> Option<&'a [u8]> {
-        self.0.next().map(|(key, _)| key)
+        Streamer::next(&mut self.0).map(|(key, _)| key)
     }
 }
 
