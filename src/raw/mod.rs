@@ -1025,7 +1025,7 @@ impl<'f, A: Automaton> Stream<'f, A> {
     /// Note that this creates a new allocation for every key in the stream.
     pub fn into_byte_vec(mut self) -> Vec<(Vec<u8>, u64)> {
         let mut vs = vec![];
-        while let Some((k, v)) = self.next() {
+        while let Some((k, v)) = Streamer::next(&mut self) {
             vs.push((k.to_vec(), v.value()));
         }
         vs
@@ -1039,7 +1039,7 @@ impl<'f, A: Automaton> Stream<'f, A> {
     /// Note that this creates a new allocation for every key in the stream.
     pub fn into_str_vec(mut self) -> Result<Vec<(String, u64)>> {
         let mut vs = vec![];
-        while let Some((k, v)) = self.next() {
+        while let Some((k, v)) = Streamer::next(&mut self) {
             let k = String::from_utf8(k.to_vec()).map_err(Error::from)?;
             vs.push((k, v.value()));
         }
@@ -1051,7 +1051,7 @@ impl<'f, A: Automaton> Stream<'f, A> {
     /// Note that this creates a new allocation for every key in the stream.
     pub fn into_byte_keys(mut self) -> Vec<Vec<u8>> {
         let mut vs = vec![];
-        while let Some((k, _)) = self.next() {
+        while let Some((k, _)) = Streamer::next(&mut self) {
             vs.push(k.to_vec());
         }
         vs
@@ -1065,7 +1065,7 @@ impl<'f, A: Automaton> Stream<'f, A> {
     /// Note that this creates a new allocation for every key in the stream.
     pub fn into_str_keys(mut self) -> Result<Vec<String>> {
         let mut vs = vec![];
-        while let Some((k, _)) = self.next() {
+        while let Some((k, _)) = Streamer::next(&mut self) {
             let k = String::from_utf8(k.to_vec()).map_err(Error::from)?;
             vs.push(k);
         }
@@ -1075,7 +1075,7 @@ impl<'f, A: Automaton> Stream<'f, A> {
     /// Convert this stream into a vector of outputs.
     pub fn into_values(mut self) -> Vec<u64> {
         let mut vs = vec![];
-        while let Some((_, v)) = self.next() {
+        while let Some((_, v)) = Streamer::next(&mut self) {
             vs.push(v.value());
         }
         vs
@@ -1088,6 +1088,15 @@ impl<'f, 'a, A: Automaton> Streamer<'a> for Stream<'f, A> {
 
     fn next(&'a mut self) -> Option<(&'a [u8], Output)> {
         self.0.next_with(|_| ()).map(|(key, out, ())| (key, out))
+    }
+}
+
+#[cfg(feature = "stream-iter")]
+impl<'f, A: Automaton> Iterator for Stream<'f, A> {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next_with(|_| ()).map(|(_key, out, ())| out.value())
     }
 }
 

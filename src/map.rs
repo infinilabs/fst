@@ -495,7 +495,7 @@ impl<D: AsRef<[u8]>> fmt::Debug for Map<D> {
         write!(f, "Map([")?;
         let mut stream = self.stream();
         let mut first = true;
-        while let Some((k, v)) = stream.next() {
+        while let Some((k, v)) = Streamer::next(&mut stream) {
             if !first {
                 write!(f, ", ")?;
             }
@@ -743,7 +743,7 @@ impl<'a, 'm, A: Automaton> Streamer<'a> for Stream<'m, A> {
     type Item = (&'a [u8], u64);
 
     fn next(&'a mut self) -> Option<(&'a [u8], u64)> {
-        self.0.next().map(|(key, out)| (key, out.value()))
+        Streamer::next(&mut self.0).map(|(key, out)| (key, out.value()))
     }
 }
 
@@ -827,7 +827,7 @@ impl<'a, 'm> Streamer<'a> for Keys<'m> {
 
     #[inline]
     fn next(&'a mut self) -> Option<&'a [u8]> {
-        self.0.next().map(|(key, _)| key)
+        Streamer::next(&mut self.0).map(|(key, _)| key)
     }
 }
 
@@ -844,7 +844,7 @@ impl<'a, 'm> Streamer<'a> for Values<'m> {
 
     #[inline]
     fn next(&'a mut self) -> Option<u64> {
-        self.0.next().map(|(_, out)| out.value())
+        Streamer::next(&mut self.0).map(|(_, out)| out.value())
     }
 }
 
@@ -887,7 +887,6 @@ impl<'m, A: Automaton> StreamBuilder<'m, A> {
 }
 
 #[cfg(feature = "alloc")]
-
 impl<'m, 'a, A: Automaton> IntoStreamer<'a> for StreamBuilder<'m, A> {
     type Item = (&'a [u8], u64);
     type Into = Stream<'m, A>;
@@ -1334,5 +1333,17 @@ where
 
     fn next(&'a mut self) -> Option<(&'a [u8], raw::Output)> {
         self.0.next().map(|(k, v)| (k, raw::Output::new(v)))
+    }
+}
+
+#[cfg(feature = "stream-iter")]
+impl<'m, A> Iterator for Stream<'m, A>
+where
+    A: Automaton,
+{
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Iterator::next(&mut self.0)
     }
 }
