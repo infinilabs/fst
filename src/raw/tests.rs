@@ -5,11 +5,10 @@ use crate::stream::Streamer;
 #[cfg(test)]
 use std::vec::Vec;
 
-
-#[cfg(test)]
-use std::vec;
 #[cfg(test)]
 use std::string::String;
+#[cfg(test)]
+use std::vec;
 
 const TEXT: &str = include_str!("./../../data/words-100000");
 

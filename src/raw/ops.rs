@@ -498,16 +498,16 @@ impl Ord for Slot {
 
 #[cfg(test)]
 mod tests {
+    use super::OpBuilder;
     use crate::raw::tests::{fst_map, fst_set};
     use crate::raw::Fst;
     use crate::stream::{IntoStreamer, Streamer};
     use std::string::String;
-    use super::OpBuilder;
 
     #[cfg(test)]
-    use std::vec::Vec;
-    #[cfg(test)]
     use std::vec;
+    #[cfg(test)]
+    use std::vec::Vec;
 
     fn s(string: &str) -> String {
         string.into()

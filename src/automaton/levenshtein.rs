@@ -1,11 +1,11 @@
 extern crate alloc;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::cmp;
 use core::fmt;
-use alloc::string::String;
-use alloc::vec::Vec;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
-use alloc::vec;
 use utf8_ranges::{Utf8Range, Utf8Sequences};
 
 use crate::automaton::Automaton;
@@ -41,7 +41,10 @@ pub struct Levenshtein {
 }
 
 impl Levenshtein {
-    pub fn new(query: &str, distance: u32) -> Result<Levenshtein, LevenshteinError> {
+    pub fn new(
+        query: &str,
+        distance: u32,
+    ) -> Result<Levenshtein, LevenshteinError> {
         let lev = DynamicLevenshtein {
             query: query.into(),
             dist: distance as usize,
@@ -50,12 +53,17 @@ impl Levenshtein {
         Ok(Levenshtein { prog: lev, dfa })
     }
 
-    pub fn new_with_limit(query: &str, distance: u32, state_limit: usize) -> Result<Levenshtein, LevenshteinError> {
+    pub fn new_with_limit(
+        query: &str,
+        distance: u32,
+        state_limit: usize,
+    ) -> Result<Levenshtein, LevenshteinError> {
         let lev = DynamicLevenshtein {
             query: query.into(),
             dist: distance as usize,
         };
-        let dfa = DfaBuilder::new(lev.clone()).build_with_limit(state_limit)?;
+        let dfa =
+            DfaBuilder::new(lev.clone()).build_with_limit(state_limit)?;
         Ok(Levenshtein { prog: lev, dfa })
     }
 }
@@ -165,7 +173,10 @@ impl DfaBuilder {
         }
     }
 
-    fn build_with_limit(mut self, state_limit: usize) -> Result<Dfa, LevenshteinError> {
+    fn build_with_limit(
+        mut self,
+        state_limit: usize,
+    ) -> Result<Dfa, LevenshteinError> {
         let mut stack = vec![self.lev.start()];
         let mut seen = HashSet::new();
         let query = self.lev.query.clone();
@@ -221,7 +232,11 @@ impl DfaBuilder {
         })
     }
 
-    fn add_mismatch_utf8_states(&mut self, from_si: usize, lev_state: &[usize]) -> Option<(usize, Vec<usize>)> {
+    fn add_mismatch_utf8_states(
+        &mut self,
+        from_si: usize,
+        lev_state: &[usize],
+    ) -> Option<(usize, Vec<usize>)> {
         let mismatch_state = self.lev.accept(lev_state, None);
         let to_si = match self.cached(&mismatch_state) {
             None => return None,
@@ -231,7 +246,14 @@ impl DfaBuilder {
         Some((to_si, mismatch_state))
     }
 
-    fn add_utf8_sequences(&mut self, overwrite: bool, from_si: usize, to_si: usize, from_chr: char, to_chr: char) {
+    fn add_utf8_sequences(
+        &mut self,
+        overwrite: bool,
+        from_si: usize,
+        to_si: usize,
+        from_chr: char,
+        to_chr: char,
+    ) {
         for seq in Utf8Sequences::new(from_chr, to_chr) {
             let mut fsi = from_si;
             for range in &seq.as_slice()[0..seq.len() - 1] {
@@ -239,13 +261,25 @@ impl DfaBuilder {
                 self.add_utf8_range(overwrite, fsi, tsi, range);
                 fsi = tsi;
             }
-            self.add_utf8_range(overwrite, fsi, to_si, &seq.as_slice()[seq.len() - 1]);
+            self.add_utf8_range(
+                overwrite,
+                fsi,
+                to_si,
+                &seq.as_slice()[seq.len() - 1],
+            );
         }
     }
 
-    fn add_utf8_range(&mut self, overwrite: bool, from_si: usize, to_si: usize, range: &Utf8Range) {
+    fn add_utf8_range(
+        &mut self,
+        overwrite: bool,
+        from_si: usize,
+        to_si: usize,
+        range: &Utf8Range,
+    ) {
         for b in range.start..range.end + 1 {
-            if overwrite || self.dfa.states[from_si].next[b as usize].is_none() {
+            if overwrite || self.dfa.states[from_si].next[b as usize].is_none()
+            {
                 self.dfa.states[from_si].next[b as usize] = Some(to_si);
             }
         }
